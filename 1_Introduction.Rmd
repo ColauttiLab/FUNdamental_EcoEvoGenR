@@ -1,0 +1,132 @@
+---
+title: "Probabilities"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("theme_pub.R")
+library(ggplot2); theme_set(theme_pub())
+```
+
+# Philosophy and Notation
+
+Consider a the formation of gametes during meiosis in a diploid organism. Let's choose a gamete at random and look at a specific gene. How do we model whether it came from the maternal or paternal chromosome?
+
+We can encode the maternal chromosome as outcome M with a probability of 0.5 the paternal chromosome as outcome P with the same probability. More generally, we can call M and P the predicted **state** or **outcome**. We can fomalize a simple gamete sampling model using probability notation:
+
+$$P(M) = 0.5$$
+$$P(P) = 0.5$$
+
+Note that the probabilities sum to 1:
+
+$$P(M) + P(P) = 1$$
+
+However, this is not always true. In the case of a coin flip there are only two outcomes, each outcome is **independent** and **mutually exclusive**. We'll come back to this
+
+> Write an equation for the full set of probabilities for the roll of a 6-sided die.
+
+# Functions
+
+## Discrete probability distribution
+
+We can graph probabilities for a set ov N outcomes if we set the x-axis equal to the outcomes and the y-axis equal to a measure of the probability of the outcome(s). The way we do this depends on the type of variable. For a variable with discrete outcomes (head/stails, dice, gamete sampling) we can graph a probability function for N discrete outcomes
+
+$$ \sum_{i=1}^{N} P(x_i)=1 $$
+
+Here, $x_i$ is the specific outcome (of N different outcomes) and $P(x_i)$ is the probability of observing that outcome. Let's simulate an example: what's the probability distribution for a random allele sampled rom an auto-tetraploid genome? 
+
+We know there are 4 outcomes:
+$$N = 4$$
+
+and we know:
+$$\sum_{i=1}^{4}P(x_i)=1$$
+
+if each outcome has an equal probability, then:
+$$P(x) = \frac{1}{N} = \frac{1}{4}$$
+
+> Try to write your own code to plot the probability function
+
+```{r, warning=F, echo=F}
+library(ggplot2)
+X<-1:4
+qplot(x=X,y=rep(1/4,length(X)))
+```
+
+## Continuous probability density function
+
+Instead of discrete categories like chromosomes, imagine a continuous random variable where probabilites are spread out across non-discrete units. 
+
+A good example of this is a quantitative trait (e.g. height, biomass), which are determined by the combined contributions of hundreds of genes. 
+
+## Additive model
+
+In quantitative genetics, the *additive model* assigns a *trait value* or *effect size* to each gene, which quanintfies how much that gene increases or decreases a person's height. This may be in absolute units but is usually standardized relative to the mean and standard deviation of a study group or population. Adding the effect sizes across all of an individual genes yields a person's height, typically in deviations from the mean. For example, a sum of -1 indicates a genotype that is 10 cm below average; a sum of 0 means the genotype is average height.
+
+> What is the advantage of standardizing a phenotypic trait to mean = 0 and sd = 1
+
+According to the [Central Limit Theorem](https://en.wikipedia.org/wiki/Central_limit_theorem), the addition of many independent random variables (e.g. trait values) folows a Gaussian distribution.
+
+Let's model the expected heights for a randomly mating population with genes chosen at random from the gamete pool.
+
+```{r}
+X<-c(-1000:1000)/100
+qplot(x=X,y=dnorm(X,mean=0,sd=1))
+```
+
+This is *probability density function*, in contrast to the *probability distribution* for a discrete variable. 
+
+> Fun fact, you can't plot a truly continuous variable along the x-axis in R. The best you can do is approximate by having many closely spaced bins. 
+
+The probability of a continuous distribution is undefined for a given point on the x-axis. Instead, we can calculate the probability between two values as the area under the curve. The probability distribution is:
+
+$$\int_{-\infty}^{\infty} p(x) dx = 1$$
+where $p(x)$ is the probability density function. For a Gaussian variable:
+
+$$p(x) = \frac{1}{\sigma \sqrt{2\pi}}e^{-\frac{1}{2}(\frac{x-\mu}{\theta})^2}$$
+
+> For practice, you could try to recreate p(x) using a custom function in R and apply it to X<-c(-1000:1000)/100. Using X as your x-axis and Y as your function output, you should recover the same Gaussian graph as above (if you use the same sd and mean values).
+
+# PDF vs CDF
+
+If you read the help file for `dnorm()` you will see "`dnorm` gives the density, `pnorm` gives the distribution function, `qnorm` gives the quantile function, and `rnorm` generates random deviates."
+
+You are probably familiar with using rnorm to randomly select values from a normal distribution, but what does `pnorm` do?
+
+```{r}
+X<-c(-1000:1000)/100
+qplot(x=X,y=pnorm(X,mean=0,sd=1))
+```
+
+This is also known as the *cumulative distribution function* (CDF) because it's similar to moving from left to right along the *probability density function* (PDF) and adding all the values together. 
+
+> `qnorm` is the inverse of `pnorm` in that it takes a vector of probabilities (y-axis) as input and outputs the corresponding quantiles (i.e. x-axis values in PDF and CDF).
+
+Another way to contrast the PDF and CDF functions is to think about a random draw from a Gaussian distribution (e.g. choosing someone at random and measuring their height). The area under two points $x_1$ and $x_2$ of a PDF describe the probability that the randomly drawn observation $X$ is between $x_1$ and $x_2$.
+
+$$P(x_1<X<x_2) = \int_{x_1}^{x_2} p(x) dx $$
+
+In contrast, any point $x_i$ of the CDF describes the probability that the randomly drawn observation $X$ a value less than or equal to $x_i$.
+
+$$P(X\leq x_i) = f(x_i)  $$
+
+# Bernoulli variables
+
+A Bernoulli variable is a binary variable -- yes or no, 0 or 1. Going back to our gamete sampling example, 
+
+
+# Complex Probabilities
+
+So far we have looked at random events that are *independent*, *mutually exclusive*. How do we think about probabilities when those assumptions no longer hold? 
+
+## Mutually exclusive
+
+What happens if there are multiple *states* or *outcomes* that are not mutually exclusive? Here's an extreme example on [YouTube](https://www.youtube.com/watch?v=4_n-HlDe5hQ). If outcomes are not mutually exclusive then both can occur together. Think of this like a Venn diagram of two circles where the probability of each is the area of the circle, and the probability of both is the area of overlap.
+
+> Draw this diagram for yourself and label A, B, and AB. 
+
+> If A and B have equal probabilities but AB has a probability of 1/6000, what is the probability of A?
+
+
+
+
