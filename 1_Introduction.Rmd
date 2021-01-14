@@ -9,32 +9,105 @@ source("theme_pub.R")
 library(ggplot2); theme_set(theme_pub())
 ```
 
+# Overview
+
+Probability theory is the foundation for population genetics -- both the classic theoretical models and modern statistical tools for analyzing genetic data. For this reason, it is worth spending some time to review the basics. I've put additional emphasis on concepts and equations that students often struggle with. Rather than rehash the tired examples of coin flipping and sock drawers, I've tried to incorporate more biological examples to better illustrate how useful these equations are. 
+
+There is a lot of math to cover for the uninitiated, which can be daunting. However, working through the math with simulated examples in R can help to demystify the equations when playing around with parameter values and visualizations. Some examples are provided, but in addition to these you should generate your own models whenever you get confused about part of equation.
+
 # Philosophy and Notation
 
-Consider a the formation of gametes during meiosis in a diploid organism. Let's choose a gamete at random and look at a specific gene. How do we model whether it came from the maternal or paternal chromosome?
+Consider the formation of gametes during meiosis in a diploid organism. Let's choose a gamete at random and look at a specific gene. How do we model whether it came from the maternal or paternal chromosome?
 
-We can encode the maternal chromosome as outcome M with a probability of 0.5 the paternal chromosome as outcome P with the same probability. More generally, we can call M and P the predicted **state** or **outcome**. We can fomalize a simple gamete sampling model using probability notation:
+We can encode the maternal chromosome as outcome $x_M$ with a probability of 0.5 the paternal chromosome as outcome $x_P$ with the same probability. More generally, we can call $x_M$ and $x_P$ the predicted **state** or **outcome**. We can fomalize a simple gamete sampling model using probability notation:
 
-$$P(M) = 0.5$$
-$$P(P) = 0.5$$
+$$P(x_M) = 0.5$$
+$$P(x_P) = 0.5$$
 
 Note that the probabilities sum to 1:
 
-$$P(M) + P(P) = 1$$
+$$P(x_M) + P(x_P) = 1$$
 
-However, this is not always true. In the case of a coin flip there are only two outcomes, each outcome is **independent** and **mutually exclusive**. We'll come back to this
+This is not always true. In this case it is true because there are only two outcomes, each outcome is **independent** and the outcomes are **mutually exclusive**. We'll come back to these assumptions later.
 
-> Write an equation for the full set of probabilities for the roll of a 6-sided die.
+> Write an equation similar to the one above for the full set of probabilities in a model of a random sample from a pool of four gametes instead of two.
+
+
+# Random sampling
+
+Random sampling is a crucial concept in population geneticsfundamental to statistical analysis. Returning to the gamete example, what is the probability of selecting gamete of type $x_i$ from a pool of gametes of different type? 
+
+It is simply $P(x_i)$, which is the fraction of gametes of that type! For example, if there are 10 gametes of type $x_i$ in a pool of 100 gametes, the probability of choosing $x_i$ in your first attempt is 0.1 (i.e. 10 divided by 100).
+
+What is the probability of selecting the same gamete in your second draw?  
+
+The answer depends on HOW you sample, and the nature of the population you are sampling from. There are two main ways to think about this.
+
+## With replacement
+
+If we have a sufficiently large sample size (e.g. millions of gametes) then each sampling event does not significantly change the proportion of alleles in the gamete pool. Technically it does, but only by 0.001%. For practical purposes, this is functionally equivalent to randomly choosing a gamete and then replacing it in the pool so that it might be sampled again. Thus, this model is called "sampling with replacement". 
+
+There is one interesting phenomenon when sampling with replacement that we can see for our gamete model. Keep this in mind as it will return several times in popgen models that assume very large $N$:
+
+If the odds of sampling gamete of type $x_i$ is simply $P(x_i)$, How do we model the results of two samples instead of one?
+
+### Specific type
+
+What are the odds that both are type $x_i$? Assuming each draw is independent and not mutually exclusive, then it is simply the product of the probabilities of each joint event, or $P(x_i)^2$.
+
+### Non-specific type
+
+What are the odds of getting two of the same type? In other words, not the odds of getting two of a predetermined type, but just two matches of any type? The surprising answer is that it is the average frequency $P(x)$.
+
+> Think about this. Why is it $P(x)$ rather than $2P(X)$ or $P(x)^2$?
+
+> Write an example in in R that you can play with to convince yourself.
+
+## Without replacement
+
+Sampling from a finite population without replacement adds complexity because each draw affects the proportions in the sample. For example if there are 10 of gamete type $x_i$ in a sample of 100 gametes, then there is a 10% chance (10/100) of sampling it in the first draw, but a 9% chance (9/100) in the second draw, an 8% chance in the third draw, etc. 
+
+> NOTE: In R we can use the `sample()` function to quickly sample from a vector with or without replacement.
+
+# Complex Probabilities
+
+So far we have looked at random events that are *independent* and *mutually exclusive*. How do we think about probabilities when those assumptions no longer hold? 
+
+## Mutually exclusive
+
+What happens if there are multiple *states* or *outcomes* that are not mutually exclusive? Here's an extreme example of a non-binary coin toss on [YouTube](https://www.youtube.com/watch?v=4_n-HlDe5hQ). If outcomes are not mutually exclusive then both can occur together. Think of this like a Venn diagram of two circles where the probability of each is the area of the circle, and the probability of both is the area of overlap.
+
+> Draw this diagram for yourself and label A, B, and AB. 
+
+> If A and B have equal probabilities but AB has a probability of 1/6000, what is the probability of A?
+
+When two events are not mutually exclusive, then there are three possible outcomes: 
+
+  * A only
+  * B only
+  * Both A & B
+  
+In other words: 
+
+$$ P(x_A) + P(x_B) - P(x_Ax_B) = 1$$
+
+Since the two events are not independent, knowledge of one event affects the probability of the other. This is the conditional probability:
+
+$$P(x_A|x_B) = P(x_Ax_B)/P(x_B)$$
+$$P(x_B|x_A) = P(x_Ax_B)/P(x_A)$$
+
+Read $P(A|B)$ as 'the probability of event $A$ given that event $B$ happens'. Looking back at your Venn diagram, you can see that the proportion of B that overlaps with $A$ is the likelihood that $A$ occurs given $B$.
+
 
 # Functions
 
 ## Discrete probability distribution
 
-We can graph probabilities for a set ov N outcomes if we set the x-axis equal to the outcomes and the y-axis equal to a measure of the probability of the outcome(s). The way we do this depends on the type of variable. For a variable with discrete outcomes (head/stails, dice, gamete sampling) we can graph a probability function for N discrete outcomes
+We can graph probabilities for a set of $N$ outcomes if we set the x-axis equal to the outcomes $x_i$ and the y-axis showing a measure of the probability of each outcome $P(x_i)$. The way we do this depends on the type of variable. For a variable with discrete outcomes (head/stails, dice, gamete sampling) we can graph a probability function for N discrete outcomes
 
 $$ \sum_{i=1}^{N} P(x_i)=1 $$
 
-Here, $x_i$ is the specific outcome (of N different outcomes) and $P(x_i)$ is the probability of observing that outcome. Let's simulate an example: what's the probability distribution for a random allele sampled rom an auto-tetraploid genome? 
+Again, $x_i$ is the specific outcome (of N different outcomes) and $P(x_i)$ is the probability of observing that outcome. Let's simulate an example: what's the probability distribution for a random allele sampled from an auto-tetraploid genome? 
 
 We know there are 4 outcomes:
 $$N = 4$$
@@ -45,19 +118,32 @@ $$\sum_{i=1}^{4}P(x_i)=1$$
 if each outcome has an equal probability, then:
 $$P(x) = \frac{1}{N} = \frac{1}{4}$$
 
-> Try to write your own code to plot the probability function
+> Try to write your own code to plot the probability function.
 
 ```{r, warning=F, echo=F}
 library(ggplot2)
 X<-1:4
-qplot(x=X,y=rep(1/4,length(X)))
+qplot(x=X,y=rep(1/4,length(X))) + xlab("x") + ylab("P(x)")
 ```
+
+What if the allele frequencies are not equal? For example:
+
+$$P(x_1) = 0.2$$
+$$P(x_2) = 0.4$$
+$$P(x_3) = 0.1$$
+$$P(x_4) = ?$$
+
+> What is the frequency of the 4th allele? What equation did you use to calculate it?
+
+> Graph this discrete function in R and compare to the one above.
 
 ## Continuous probability density function
 
 Instead of discrete categories like chromosomes, imagine a continuous random variable where probabilites are spread out across non-discrete units. 
 
-A good example of this is a quantitative trait (e.g. height, biomass), which are determined by the combined contributions of hundreds of genes. 
+A good example of this is a quantitative trait (e.g. height, biomass), which has continuous phenotype values $x$ determined by the combined contributions of dozens to thousands of genes. 
+
+> Note: Technically, there are a finite number of gene combinations, but in practice a continuous function is a good approximation and easier to model than a finite function.
 
 ## Additive model
 
@@ -87,11 +173,12 @@ $$p(x) = \frac{1}{\sigma \sqrt{2\pi}}e^{-\frac{1}{2}(\frac{x-\mu}{\theta})^2}$$
 
 > For practice, you could try to recreate p(x) using a custom function in R and apply it to X<-c(-1000:1000)/100. Using X as your x-axis and Y as your function output, you should recover the same Gaussian graph as above (if you use the same sd and mean values).
 
+
 # PDF vs CDF
 
 If you read the help file for `dnorm()` you will see "`dnorm` gives the density, `pnorm` gives the distribution function, `qnorm` gives the quantile function, and `rnorm` generates random deviates."
 
-You are probably familiar with using rnorm to randomly select values from a normal distribution, but what does `pnorm` do?
+You are probably familiar with using rnorm to randomly select values from a normal distribution, but what does `pnorm` do? Let's investigate:
 
 ```{r}
 X<-c(-1000:1000)/100
@@ -100,33 +187,178 @@ qplot(x=X,y=pnorm(X,mean=0,sd=1))
 
 This is also known as the *cumulative distribution function* (CDF) because it's similar to moving from left to right along the *probability density function* (PDF) and adding all the values together. 
 
-> `qnorm` is the inverse of `pnorm` in that it takes a vector of probabilities (y-axis) as input and outputs the corresponding quantiles (i.e. x-axis values in PDF and CDF).
+> `qnorm` is the inverse of `pnorm` in that it takes a vector of probabilities (y-axis) as input and outputs the corresponding quantiles (i.e. x-axis values in PDF and CDF). 
+
+> Write some R code to play with this function until you understand how it works.
 
 Another way to contrast the PDF and CDF functions is to think about a random draw from a Gaussian distribution (e.g. choosing someone at random and measuring their height). The area under two points $x_1$ and $x_2$ of a PDF describe the probability that the randomly drawn observation $X$ is between $x_1$ and $x_2$.
 
 $$P(x_1<X<x_2) = \int_{x_1}^{x_2} p(x) dx $$
 
-In contrast, any point $x_i$ of the CDF describes the probability that the randomly drawn observation $X$ a value less than or equal to $x_i$.
+In contrast, any outcome $x_i$ of the CDF describes the probability that the randomly drawn observation $X$ a value less than or equal to $x_i$.
 
 $$P(X\leq x_i) = f(x_i)  $$
 
-# Bernoulli variables
-
-A Bernoulli variable is a binary variable -- yes or no, 0 or 1. Going back to our gamete sampling example, 
 
 
-# Complex Probabilities
+# Distribution Parameters
 
-So far we have looked at random events that are *independent*, *mutually exclusive*. How do we think about probabilities when those assumptions no longer hold? 
+## (Mean) Expectation
 
-## Mutually exclusive
+The *expectated value* of a probability function is its mean or average value. You are probably comfortable with calculating the mean value of a sample. The mean value of a probability function (or any function for that matter) is similar except the observed value is weighted by its proportion or probability.
 
-What happens if there are multiple *states* or *outcomes* that are not mutually exclusive? Here's an extreme example on [YouTube](https://www.youtube.com/watch?v=4_n-HlDe5hQ). If outcomes are not mutually exclusive then both can occur together. Think of this like a Venn diagram of two circles where the probability of each is the area of the circle, and the probability of both is the area of overlap.
+The expected value of a discrete probability function of x is:
 
-> Draw this diagram for yourself and label A, B, and AB. 
+$$E(x) = \bar x = \sum_iP(x_i)x_i $$
 
-> If A and B have equal probabilities but AB has a probability of 1/6000, what is the probability of A?
+For a continuous probability function
+
+$$\int (P(x)x) dx = 1$$
+
+In each equation, $x$ is the value along the x-axis of the probability distribution, and $P(x)$ is either the discrete probability or probability density (i.e. y-axis).
+
+> Calculate the expectation for the discrete and continuous probability function graphs above. Plot a red vertical line showing the value.
+
+## Moments
+
+The mean is technically the 1st moment of the probability function, and describes the 'central tendency' of the distribution. Higher-order moments provide additional information about the distribution. 
+
+Second moment of a discrete probability function:
+
+$$ E(x^2) = \sum_i P(x_i)x_i^2$$
+
+Third Moment:
+
+$$ E(x^3) = \sum_i P(x_i)x_i^3$$
+
+## Central Moments
+
+Central moments are moments of deviations from the mean. A deviation is defined as the difference from the mean. The first central moment is the average deviation and is always zero:
+
+$$E(x-\bar x) = 0$$
+
+Prove this to yourself in R:
+
+```{r}
+X<-c(-1000:1000)/10 # Vector of x-values
+Px<-dnorm(X,mean=0,sd=1) # Vector of probabilities
+Ex<-sum(Px*X) # First moment (mean)
+print(Ex) # Mean should be zero...?
+Y<-X-Px # vector of deviations
+mean(Y) # mean deviation
+qplot(X,Px)
+```
+
+> Caution: Make sure you understand the difference between a deviation, the average deviation, and the standard deviation.
+
+A fun result here is that our mean `Ex` and mean deviation `mean(Y)` are not $0$! Yet we know the mean is 0 because we defined `mean=0` right in our Px function, and we know our mean deviation is $0$ by definition.
+
+The answer is that it is a quirk of doing math on computers. This is something called a [floating point error](https://en.wikipedia.org/wiki/Floating-point_error_mitigation) and it can lead to analysis errors if you are not careful. It occurs when R has to track numbers to a large number of decimal places -- for example, when multiplying very small numbers together. It's worth taking some time to read about it as we'll see this again. For example, this this is why we use log-likelihoods instead of raw likelihoods Markov chain Monte Carlo (MCMC) models.
+
+## Variance and covariance
+
+The second central moment of a distribution is its variance.
+
+$$V(x) = E[(x-\bar x)^2]$$
+
+Another way to think of the variance is the central moment multiplied by itself. 
+
+$$V(x) = E[(x-\bar x)(x-\bar x)]$$
+
+This yields two useful equations:
+
+First, we can multiply through and simplify to derive another equation for variance that can be very useful for simplifying models and empirical calculations:
+
+$$V(x) = E(x^2) - \bar x^2$$
+
+Second, we can look at the second moment of one variable against another, rather than with itself. This is the *Covariance* between two traits:
+
+$$C(x,y) = E[(x-\bar x)(y-\bar y)]$$
+
+$$ = E(xy)-\bar x \bar y$$
+
+## Correlation
+
+Pearson's correlation coefficient ($\rho$) is its corresponding $\rho^2$ are common statistical parameters related to covariance. Specifically, it is the covariance divided by the square root of the product of the variances:
+
+$$\rho = \frac{C(x,y)}{\sqrt{V(x)V(y)}}$$
+
+$$ = \frac{E(xy)-\bar x \bar y}{\sqrt {E[(x^2) - \bar x^2]E[(y^2) - \bar y^2]}} $$
 
 
+> Write R code that plots two vectors and also outputs the covariance and correlation between two sets of random numbers. Spend some time playing around by generating different input vectors (e.g. different random distributions, y as a function of x) to get a sense of the relationship between covariance and correlation, and how these data look when graphed.
 
+## Skew and Kurtosis
 
+In addition to variance, higher order central moments describe useful aspects of the distribution. These are often scaled by the standard deviation $\sigma$. Dividing by $\sigma$ results in a unitless index that describes the shape of the curve independent of the scale along the x-axis.
+
+Third central moment
+$$ E[(x-\bar x)^3]$$
+
+Skew coefficient:
+
+$$ E[\frac{(x-\bar x)^3}{\sigma}]$$
+
+Fourth central moment
+$$ E[(x-\bar x)^4]$$
+
+Curtosis coefficient:
+$$ E[\frac{(x-\bar x)^4}{\sigma}]$$
+
+Skew is often interpreted as a measure of the distance between a distributions median and its mean. However, this rule of thumb can fail when applied to discrete distribution functions. 
+
+> Write code in R that will generate a probability function for a trait measured in cm and the same trait converted to mm. Calculate the second and third central moments (unscaled) and the corresponding.
+
+# Bernoulli variable
+
+Before we get into binomial and multinomial distributions, a note of caution. These models are tricky but we will see later that they are absolutely fundamental to population genetics, both theoretical models and empirical analysis. These models are relevant to just about everything that involves allele frequencies. You are almost done this tutorial, but it will probably take you a while to work through this. Don't give up! Take a break, and take the time to make sure you understand these functions. Use R to recreate the functions and play around with real numbers.
+
+A Bernoulli variable is a binary variable – yes or no, 0 or 1. Returning to our gamete sampling example, sampling an allele at any locus in a diploid is a Bernoulli event because there are only two posible outcomes (maternal vs paternal). In classic population genetics, we might call these the $A$ and $a$ alleles.
+
+We can use the binomial distribution to model repeated sampling of a Bernoulli variable (with replacement). For example, if you sample $N$ gametes, with replacement, what is the probability of getting $k$ of the $A$ allele? We assign a value of $x_i=1$ for the $A$ allele and a value of $x_i=0$ for the $a$ allele. If $p$ is the proportion of $A$ alleles in the sample pool and $q = 1-p$ is the proportion of $a$ alleles, then the sampling model follows a binomial distribution:
+
+$$P(K = k) = \binom Nk p^k q^{N-k}$$
+The function $\binom Nk$ is read as '$N$ choose $k$' and the equation is:
+
+$$ \binom Nk = \frac{N!}{k!(N-k)!} $$
+
+Where $!$ is 'factorial' and is the product of all numbers from 1. For example, $3!$ is $$1\times2\times3$$.
+
+## Mean and Variance
+
+The mean and variance in a binomial model are:
+
+$$E(x)=p$$
+
+$$V(x)=pq$$
+
+Technically you can derive these from the binomial distribution. But unless you really like to work through some algebra by hand, it is usually sufficient to just memorize these. 
+
+> Write a model in R that will graph $V(x)$ for $p$ ranging from zero to 1. What is the shape of this function?
+
+# Multinomial
+
+Extending the binomial to more than two categories adds a lot of complexity. The multinomial distribution is a way to model this but it is difficult to visualize because we are tracking many variables. 
+
+Going back to the tetraploid example, let's say there are 4 alleles ($A_1,A_2,...A_4$) with frequencies $A_1=0.2$, $A_2=0.3$, $A_3=0.4$ and $A_4=0.1$. We are going to sample 100 alleles with replacement and count how many alleles we get of each type. There are many possible outcomes, which we can track as a set of vectors. Let's set this up in R:
+
+```{r}
+p<-c(0.2,0.3,0.4,0.1) # Probability vector
+Alleles<-sample.int(4,size=100,replace=T,prob=p) # Randomly sample 100 alleles
+Y<-table(Alleles) # Vector of counts for each allele
+print(Y)
+```
+
+> Run this a few times to understand the Y vector. 
+
+We can assign a probability to the $Y$ vector, for every possible combination of values. For example:
+
+$$Y = [100,0,0,0]$$
+$$Y = [99,1,0,0]$$
+$$...$$
+$$Y = [0,0,0,100]$$
+
+More generally, we can define a multinomial sampling equation analogous to the binomial distribution of a Bernoulli variable but for every possible vector $Y$ and for any number of $k$ alleles. As inputs we need the probability vector $p$ and the total number of alleles sample $n$:
+
+$$P(Y=y) = \frac{n!}{\prod_{i=1}^{k}}(\prod_{i=1}^{k}p_i!)$$
+Where $\prod_{i=1}^{k}p_i! = p_1!\times p_2!\times ... p_k!$
